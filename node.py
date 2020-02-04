@@ -13,6 +13,7 @@ def main():
     port = args.port[0]
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        print('Sending message')
         s.connect((host, port))
         s.sendall(str.encode(name))
 
