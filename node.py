@@ -1,5 +1,7 @@
 import argparse
 import socket
+import sys
+import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument('name', nargs=1, default='node', type=str)
@@ -13,16 +15,15 @@ def main():
     port = args.port[0]
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        print('Sending message')
         s.connect((host, port))
         s.sendall(str.encode(name))
 
+        # TODO: Determine if sleep is best here or some sort of TCP
+        time.sleep(.300)
         while True:
-            data = s.recv(1024)
-            if not data:
-                break
-            print(f'Received {repr(data)}')
-            pass
+            for line in sys.stdin:
+                s.sendall(str.encode(line))
+            
 
 if __name__ == "__main__":
     main()

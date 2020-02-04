@@ -1,5 +1,6 @@
 import argparse
 import socket
+import time
 
 import multiprocessing as mp
 
@@ -7,14 +8,26 @@ parser = argparse.ArgumentParser(description="Create a logger to listen for mess
 parser.add_argument('port', nargs=1, default=1234, type=int)
 
 def handle_client(conn, address, queue):
+    name = None
     with conn:
         # Handle messages
-        queue.put(f'{address} | Node connected')
-        while True:
-            data = conn.recv(1024)
-            if not data:
-                break
-            conn.sendall(data)
+        try:
+            while True:
+                data = conn.recv(1024)
+                if not data:
+                    break
+                msg = data.decode('utf-8')
+                
+                if name is None:
+                   name = msg
+                   queue.put(f'{time.time()} - {name} connected')
+                else:
+                   queue.put(f'{time.time()} | {name} | {msg}')
+        except Exception as e:
+            # TODO: Better error handling
+            print(e)
+    queue.put(f'{time.time()} - {name} disconnected')
+    
 
 def print_messages(queue):
     while True:
