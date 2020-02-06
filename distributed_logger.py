@@ -19,10 +19,15 @@ def handle_client(conn, address, queue):
                 msg = data.decode('utf-8')
                 
                 if name is None:
-                   name = msg
-                   queue.put(f'{time.time()} - {name} connected')
+                    name = msg
+                    queue.put(f'{time.time()} - {name} connected')
                 else:
-                   queue.put(f'{time.time()} | {name} | {msg}')
+                    msg_time, msg = msg.split()
+
+                    # TODO: Put delay onto a queue
+                    delay = time.time() - float(msg_time)
+                    
+                    queue.put(f'{msg_time} | {name} | {msg}')
         except Exception as e:
             # TODO: Better error handling
             print(e)
