@@ -2,6 +2,7 @@ import argparse
 import socket
 import time
 import os
+import matplotlib.pyplot as plt
 import multiprocessing as mp
 
 parser = argparse.ArgumentParser(description="Create a logger to listen for messages on a specified port.")
@@ -91,15 +92,15 @@ def generate_graph(file_path):
             median_delays.append(float(median_delay))
             ninety_delays.append(float(ninety_delay))
 
-    plt.legend()
+    plt.plot(min_delays, label='Min Delay')
+    plt.plot(max_delays, label='Max Delay')
+    plt.plot(median_delays, label='Median Delay')
+    plt.plot(ninety_delays, label='90-th Percentile Delay')
+    
     plt.xlabel('Time (s)')
     plt.ylabel('Delay (s)')
+    plt.legend(loc='upper right')
 
-    plt.plot(min_delays)
-    plt.plot(max_delays)
-    plt.plot(median_delays)
-    plt.plot(ninety_delays)
-    
     plt.show()
     
             
