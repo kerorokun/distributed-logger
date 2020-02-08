@@ -65,8 +65,7 @@ def calculate_delay_metrics(delay_queue, log_queue):
                     else: 
                         median = events[len(events)//2]
 
-                    fp.write(f'{events[0]}, {events[-1]}, {median}, {0.9 * total_delay} \n')
-                    log_queue.put(f'{events[0]}, {events[-1]}')
+                    fp.write(f'{events[0]} {events[-1]} {median} {0.9 * total_delay}\n')
                 
             except Exception as e:
                 print(e)
@@ -76,6 +75,33 @@ def print_messages(queue):
     while True:
         msg = queue.get()
         print(msg)
+
+
+def generate_graph(file_path):
+    min_delays = []
+    max_delays = []
+    median_delays = []
+    ninety_delays = []
+    
+    with open(file_path, 'r') as fp:
+        for line in fp:
+            min_delay, max_delay, median_delay, ninety_delay = line.split()
+            min_delays.append(float(min_delay))
+            max_delays.append(float(max_delay))
+            median_delays.append(float(median_delay))
+            ninety_delays.append(float(ninety_delay))
+
+    plt.legend()
+    plt.xlabel('Time (s)')
+    plt.ylabel('Delay (s)')
+
+    plt.plot(min_delays)
+    plt.plot(max_delays)
+    plt.plot(median_delays)
+    plt.plot(ninety_delays)
+    
+    plt.show()
+    
             
 def main():
     # Get the values from the command line
@@ -117,6 +143,10 @@ def main():
         
         print('\nServer closed. Creating the metrics graph.')
 
+        curr_dir = os.path.dirname(os.path.abspath(__file__))
+        log_file = os.path.join(curr_dir, 'delay_log.txt')
+
+        generate_graph(log_file)
         
 
 
