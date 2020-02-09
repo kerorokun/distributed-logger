@@ -80,7 +80,7 @@ def calculate_delay_metrics(metric_queue, log_queue):
             except Exception as e:
                 print(e)
                 
-            end_time = end_time()
+            end_time = time.time()
 
 def print_messages(queue):
     while True:
