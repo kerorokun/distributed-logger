@@ -8,7 +8,7 @@ import multiprocessing as mp
 parser = argparse.ArgumentParser(description="Create a logger to listen for messages on a specified port.")
 parser.add_argument('port', nargs=1, default=1234, type=int)
 
-def handle_client(conn, address, log_queue, delay_queue):
+def handle_client(conn, address, log_queue, metric_queue):
     name = None
     with conn:
         # Handle messages
@@ -17,7 +17,9 @@ def handle_client(conn, address, log_queue, delay_queue):
                 data = conn.recv(1024)
                 if not data:
                     break
+                
                 msg = data.decode('utf-8')
+                msg_size = len(msg)
                 
                 if name is None:
                     name = msg
@@ -25,7 +27,7 @@ def handle_client(conn, address, log_queue, delay_queue):
                 else:
                     msg_time, msg = msg.split()
 
-                    delay_queue.put(time.time() - float(msg_time))
+                    metric_queue.put((time.time() - float(msg_time), msg_size))
                     log_queue.put(f'{msg_time} | {name} | {msg}')
                     
         except Exception as e:
@@ -35,7 +37,7 @@ def handle_client(conn, address, log_queue, delay_queue):
 
 
 
-def calculate_delay_metrics(delay_queue, log_queue):
+def calculate_delay_metrics(metric_queue, log_queue):
     # Get the number of events per second
     # Min, Max, Median, 90th percentile
     curr_dir = os.path.dirname(os.path.abspath(__file__))
@@ -47,13 +49,15 @@ def calculate_delay_metrics(delay_queue, log_queue):
             time.sleep(1)
             
             # TODO: Utilize numpy / pandas
-            num_events = delay_queue.qsize()
+            num_events = metric_queue.qsize()
             events = []
             try:
                 total_delay = 0
+                total_size = 0
                 for i in range(num_events):
-                    delay = delay_queue.get()
+                    delay, size = metric_queue.get()
                     total_delay += delay
+                    total_size += size
                     events.append(delay)
 
                 if events:
@@ -66,7 +70,7 @@ def calculate_delay_metrics(delay_queue, log_queue):
                     else: 
                         median = events[len(events)//2]
 
-                    fp.write(f'{events[0]} {events[-1]} {median} {0.9 * total_delay}\n')
+                    fp.write(f'{events[0]} {events[-1]} {median} {0.9 * total_delay} {total_size}\n')
                 
             except Exception as e:
                 print(e)
@@ -78,28 +82,35 @@ def print_messages(queue):
         print(msg)
 
 
-def generate_graph(file_path):
+def generate_graphs(file_path):
     min_delays = []
     max_delays = []
     median_delays = []
     ninety_delays = []
+    bandwidths = []
     
     with open(file_path, 'r') as fp:
         for line in fp:
-            min_delay, max_delay, median_delay, ninety_delay = line.split()
+            min_delay, max_delay, median_delay, ninety_delay, bandwidth = line.split()
             min_delays.append(float(min_delay))
             max_delays.append(float(max_delay))
             median_delays.append(float(median_delay))
             ninety_delays.append(float(ninety_delay))
+            bandwidths.append(int(bandwidth))
 
+    plt.subplot(2, 1, 1)
     plt.plot(min_delays, label='Min Delay')
     plt.plot(max_delays, label='Max Delay')
     plt.plot(median_delays, label='Median Delay')
     plt.plot(ninety_delays, label='90-th Percentile Delay')
-    
     plt.xlabel('Time (s)')
     plt.ylabel('Delay (s)')
     plt.legend(loc='upper right')
+
+    plt.subplot(2, 1, 2)
+    plt.plot(bandwidths, label='Bandwidth')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Bandwidth (bytes)')
 
     plt.show()
     
@@ -115,13 +126,13 @@ def main():
 
     try:
         log_queue = mp.Queue()
-        delay_queue = mp.Queue()
+        metric_queue = mp.Queue()
         
         log_reader = mp.Process(target=print_messages, args=((log_queue), ))
         processes.append(log_reader)
         log_reader.start()
         
-        delay_reader = mp.Process(target=calculate_delay_metrics, args=(delay_queue, log_queue))
+        delay_reader = mp.Process(target=calculate_delay_metrics, args=(metric_queue, log_queue))
         processes.append(delay_reader)
         delay_reader.start()
         
@@ -133,7 +144,7 @@ def main():
             while True:
                 conn, address = s.accept()
                 p = mp.Process(target=handle_client,
-                               args=(conn, address, log_queue, delay_queue))
+                               args=(conn, address, log_queue, metric_queue))
                 processes.append(p)
                 p.start()
             
@@ -147,7 +158,7 @@ def main():
         curr_dir = os.path.dirname(os.path.abspath(__file__))
         log_file = os.path.join(curr_dir, 'delay_log.txt')
 
-        generate_graph(log_file)
+        generate_graphs(log_file)
         
 
 
