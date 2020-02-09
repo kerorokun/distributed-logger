@@ -106,13 +106,14 @@ def generate_graphs(file_path):
     plt.xlabel('Time (s)')
     plt.ylabel('Delay (s)')
     plt.legend(loc='upper right')
-    plt.savefig('delay.png')
 
     plt.subplot(2, 1, 2)
     plt.plot(bandwidths, label='Bandwidth')
     plt.xlabel('Time (s)')
     plt.ylabel('Bandwidth (bytes)')
-    plt.savefig('bandwidth.png')
+    plt.tight_layout()
+    
+    plt.savefig('metrics.png')
 
             
 def main():
