@@ -43,10 +43,15 @@ def calculate_delay_metrics(metric_queue, log_queue):
     curr_dir = os.path.dirname(os.path.abspath(__file__))
     log_file = os.path.join(curr_dir, 'delay_log.txt')
 
+    start_time = time.time()
+    end_time = time.time()
+    
     with open(log_file, 'w') as fp:
     
         while True:
-            time.sleep(1)
+            time.sleep(max(0, 1 - end_time - start_time))
+
+            start_time = time.time()
             
             # TODO: Utilize numpy / pandas
             num_events = metric_queue.qsize()
@@ -74,7 +79,8 @@ def calculate_delay_metrics(metric_queue, log_queue):
                 
             except Exception as e:
                 print(e)
-    
+                
+            end_time = end_time()
 
 def print_messages(queue):
     while True:
