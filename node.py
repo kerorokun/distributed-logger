@@ -21,7 +21,7 @@ def main():
         time.sleep(.300)
         while True:
             for line in sys.stdin:
-                s.sendall(str.encode(f'{name} {line}))
+                s.sendall(str.encode(f'{name} {line}'))
             
 
 if __name__ == "__main__":
