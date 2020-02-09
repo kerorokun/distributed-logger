@@ -27,7 +27,7 @@ def handle_client(conn, address, log_queue, metric_queue):
                 else:
                     msg_time, msg = msg.split()
 
-                    metric_queue.put((time.time() - float(msg_time), msg_size))
+                    metric_queue.put((time.time(), time.time() - float(msg_time), msg_size))
                     log_queue.put(f'{msg_time} | {name} | {msg}')
                     
         except Exception as e:
@@ -36,31 +36,42 @@ def handle_client(conn, address, log_queue, metric_queue):
     log_queue.put(f'{time.time()} - {name} disconnected')
 
 
-
+# TODO: Utilize numpy / pandas
 def calculate_delay_metrics(metric_queue, log_queue):
     # Get the number of events per second
     # Min, Max, Median, 90th percentile
     curr_dir = os.path.dirname(os.path.abspath(__file__))
     log_file = os.path.join(curr_dir, 'delay_log.txt')
 
-    start_time = time.time()
-    end_time = time.time()
+    curr_time = time.time() - 1
+    leftover_event = None
     
     with open(log_file, 'w') as fp:
     
         while True:
-            time.sleep(max(0, 1 - end_time - start_time))
-
-            start_time = time.time()
+            curr_time += 1
             
-            # TODO: Utilize numpy / pandas
-            num_events = metric_queue.qsize()
             events = []
+            total_delay = 0
+            total_size = 0
+
+            if leftover_event:
+                receive_time, delay, size = leftover_event:
+                if receive_time > curr_time + 1:
+                    fp.write('0 0 0 0 0')
+                    continue
+                else:
+                    total_delay += delay
+                    total_size += size
+                    events.append(delay)
+                    
+            
             try:
-                total_delay = 0
-                total_size = 0
-                for i in range(num_events):
-                    delay, size = metric_queue.get()
+                while True:
+                    receive_time, delay, size = metric_queue.get()
+                    if receive_time > curr_time + 1:
+                        leftover_event = (receive_time, delay, size)
+                        break
                     total_delay += delay
                     total_size += size
                     events.append(delay)
@@ -68,19 +79,15 @@ def calculate_delay_metrics(metric_queue, log_queue):
                 if events:
                     events.sort()
 
-                    if len(events) % 2 == 0: 
-                        median1 = events[len(events)//2] 
-                        median2 = events[len(events)//2 - 1] 
-                        median = (median1 + median2)/2
-                    else: 
-                        median = events[len(events)//2]
-
-                    fp.write(f'{events[0]} {events[-1]} {median} {0.9 * total_delay} {total_size}\n')
-                
+                if len(events) % 2 == 0: 
+                    median1 = events[len(events)//2] 
+                    median2 = events[len(events)//2 - 1] 
+                    median = (median1 + median2)/2
+                else: 
+                    median = events[len(events)//2]
+                fp.write(f'{events[0]} {events[-1]} {median} {0.9 * total_delay} {total_size}\n')
             except Exception as e:
                 print(e)
-                
-            end_time = time.time()
 
 def print_messages(queue):
     while True:
