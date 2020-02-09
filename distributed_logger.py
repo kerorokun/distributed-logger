@@ -43,7 +43,7 @@ def calculate_delay_metrics(metric_queue, log_queue):
     curr_dir = os.path.dirname(os.path.abspath(__file__))
     log_file = os.path.join(curr_dir, 'delay_log.txt')
 
-    curr_time = -1
+    curr_time = -100
     leftover_event = None
     
     with open(log_file, 'w') as fp:
@@ -70,7 +70,7 @@ def calculate_delay_metrics(metric_queue, log_queue):
                 while True:
                     receive_time, delay, size = metric_queue.get()
 
-                    if curr_time < 0:
+                    if curr_time <= 0:
                         curr_time = receive_time
                     
                     if receive_time > curr_time + 1:
