@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser(description="Create a logger to listen for mess
 parser.add_argument('port', nargs=1, default=1234, type=int)
 
 def handle_client(conn, address, log_queue, metric_queue):
-    name = None
+    node_name = None
     with conn:
         # Handle messages
         try:
@@ -20,20 +20,19 @@ def handle_client(conn, address, log_queue, metric_queue):
                 
                 msg = data.decode('utf-8')
                 msg_size = len(msg)
+                name, msg_time, msg = msg.split()
                 
-                if name is None:
-                    name = msg
-                    log_queue.put(f'{time.time()} - {name} connected')
-                else:
-                    msg_time, msg = msg.split()
-
-                    metric_queue.put((time.time(), time.time() - float(msg_time), msg_size))
-                    log_queue.put(f'{msg_time} | {name} | {msg}')
+                if node_name is None:
+                    node_name = name
+                    log_queue.put(f'{time.time()} - {node_name} connected')
+                    
+                metric_queue.put((time.time(), time.time() - float(msg_time), msg_size))
+                log_queue.put(f'{msg_time} | {node_name} | {msg}')
                     
         except Exception as e:
             # TODO: Better error handling
             print(e)
-    log_queue.put(f'{time.time()} - {name} disconnected')
+    log_queue.put(f'{time.time()} - {node_name} disconnected')
 
 
 # TODO: Utilize numpy / pandas
@@ -58,7 +57,7 @@ def calculate_delay_metrics(metric_queue, log_queue):
             if leftover_event and curr_time > 0:
                 receive_time, delay, size = leftover_event
                 if receive_time > curr_time + 1:
-                    fp.write('0 0 0 0 0')
+                    fp.write('0 0 0 0 0\n')
                     continue
                 else:
                     total_delay += delay

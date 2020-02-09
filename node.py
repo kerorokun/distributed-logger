@@ -16,13 +16,12 @@ def main():
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((host, port))
-        s.sendall(str.encode(name))
 
         # TODO: Determine if sleep is best here or some sort of TCP
         time.sleep(.300)
         while True:
             for line in sys.stdin:
-                s.sendall(str.encode(line))
+                s.sendall(str.encode(f'{name} {line}))
             
 
 if __name__ == "__main__":
