@@ -56,7 +56,7 @@ def calculate_delay_metrics(metric_queue, log_queue):
             total_size = 0
 
             if leftover_event and curr_time > 0:
-                receive_time, delay, size = leftover_event:
+                receive_time, delay, size = leftover_event
                 if receive_time > curr_time + 1:
                     fp.write('0 0 0 0 0')
                     continue
